@@ -1,0 +1,585 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Decision Explorer</title>
+<style>body{margin:0;background:#eef3fa;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;display:flex;justify-content:center;padding:24px;} .wrap{width:100%;max-width:1220px;}</style>
+</head>
+<body><div class="wrap">
+<style>
+  #luna * { box-sizing: border-box; }
+  #luna {
+    position: relative;
+    --blue: #2563eb; --blue-hover:#1d4ed8; --blue-bg:#eaf2fe; --blue-border:#bfdbfe; --blue-text:#1d4ed8;
+    --green: #16a34a; --green-bg:#eafaf0; --amber: #d97706; --amber-bg:#fffbeb; --red: #ef4444; --red-bg:#fee2e2; --red-border:#fca5a5; --red-text:#b91c1c;
+    --ink: #111827; --gray: #6b7280; --gray-light:#9ca3af; --border-default:#d9e1ee;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #eef3fa; border-radius: 16px; padding: 1.75rem; width: 100%;
+  }
+  #luna .hidden { display: none !important; }
+  #luna .badge {
+    display: inline-flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid var(--blue-border);
+    color: var(--blue-text); font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px; margin-bottom: 14px;
+  }
+  #luna h1 { font-size: 24px; font-weight: 700; color: var(--ink); margin: 0 0 6px; line-height: 1.3; }
+  #luna .sub { font-size: 14px; color: var(--gray); margin: 0 0 20px; line-height: 1.5; }
+
+  #luna .progress-header { display: flex; align-items: center; margin-bottom: 16px; gap: 10px; }
+  #luna .stage-pill {
+    display: inline-flex; align-items: center; gap: 6px; background: #ffffff; border: 1px solid var(--blue-border);
+    color: var(--blue-text); font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 999px;
+  }
+  #luna .step-track { display: flex; align-items: center; margin-bottom: 20px; max-width: 700px; }
+  #luna .step-circle {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 12.5px; font-weight: 700; background: #fff; border: 1px solid #d7deea; color: var(--gray-light);
+  }
+  #luna .step-circle.active, #luna .step-circle.done { background: var(--blue); border-color: var(--blue); color: #fff; }
+  #luna .step-line { flex: 1; height: 2px; background: #dbe3ef; margin: 0 6px; }
+  #luna .step-line.done { background: var(--blue); }
+
+  #luna .col-card { background: #fff; border: 1px solid #e3e8f0; border-radius: 14px; padding: 20px; max-width: 700px; }
+  #luna .col-title { font-size: 15px; font-weight: 700; color: var(--blue-text); margin: 0 0 4px; }
+  #luna .nav-row { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; max-width: 700px; }
+  #luna .btn-back {
+    display: inline-flex; align-items: center; gap: 7px; background: #fff; color: var(--ink); border: 1px solid #d7deea;
+    font-size: 13px; font-weight: 600; padding: 10px 18px; border-radius: 999px; cursor: pointer;
+  }
+  #luna .btn-back:hover { background: #f4f7fc; }
+  #luna .btn-continue {
+    display: inline-flex; align-items: center; gap: 8px; background: var(--blue); color: #fff; border: none;
+    font-size: 14px; font-weight: 600; padding: 11px 20px; border-radius: 999px; cursor: pointer; margin-left: auto;
+  }
+  #luna .btn-continue:hover { background: var(--blue-hover); }
+  #luna .btn-continue:disabled { opacity: 0.4; cursor: not-allowed; }
+  #luna .col-desc { font-size: 12.5px; color: var(--gray); margin: 0 0 14px; }
+
+  #luna .opt-row {
+    display: flex; align-items: center; gap: 10px; border: 1px solid #e3e8f0; border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  }
+  #luna .opt-row:hover { border-color: var(--blue-border); }
+  #luna .opt-row.selected { border-color: var(--blue); background: var(--blue-bg); }
+  #luna .opt-radio { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #c7d3e6; flex-shrink: 0; position: relative; }
+  #luna .opt-row.selected .opt-radio { border-color: var(--blue); }
+  #luna .opt-row.selected .opt-radio::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--blue); }
+  #luna .opt-icon { color: var(--blue-text); font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; }
+  #luna .opt-label { font-size: 13px; font-weight: 600; color: var(--ink); }
+
+  #luna .info-box {
+    display: flex; gap: 10px; align-items: flex-start; background: var(--blue-bg); border-radius: 10px;
+    padding: 12px 14px; margin-top: 16px; font-size: 12px; color: var(--ink); line-height: 1.5;
+  }
+  #luna .info-box i { color: var(--blue-text); font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+
+  #luna .decision-prompt { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #eef1f6; }
+  #luna .decision-prompt-icon {
+    flex-shrink: 0; width: 52px; height: 52px; border-radius: 50%; background: var(--blue-bg); color: var(--blue-text);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  #luna .decision-prompt-text { font-size: 12.5px; color: var(--ink); line-height: 1.5; }
+  #luna .decision-prompt-text b { display: block; margin-bottom: 2px; }
+  #luna .decision-prompt-arrow { margin-left: auto; color: var(--red); font-size: 22px; flex-shrink: 0; }
+  #luna .col2-empty, #luna .col3-empty {
+    font-size: 12.5px; color: var(--gray-light); text-align: center; padding: 30px 10px; border: 1px dashed #dbe3ef; border-radius: 10px;
+  }
+
+  #luna .decision-summary {
+    display: flex; align-items: flex-start; gap: 12px; background: var(--blue-bg); border-radius: 10px; padding: 14px 16px; margin-bottom: 6px;
+  }
+  #luna .decision-summary-icon {
+    flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: #fff; color: var(--blue-text);
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  #luna .decision-summary-line1 { font-size: 13px; color: var(--ink); margin-bottom: 3px; }
+  #luna .decision-summary-line1 b { color: var(--red); }
+  #luna .decision-summary-line2 { font-size: 12.5px; color: var(--ink); }
+  #luna .decision-summary-line2 b { font-weight: 700; }
+
+  #luna .hub { position: relative; width: 100%; max-width: 600px; height: 700px; margin: 6px auto 4px; }
+  #luna .hub-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #luna .node {
+    position: absolute; width: 168px; text-align: center; transform: translate(-50%, -31px);
+  }
+  #luna .node.above { transform: translate(-50%, calc(-100% + 31px)); }
+  #luna .node.above .node-icon { margin: 8px auto 0; }
+  #luna .node-center { width: 150px; transform: translate(-50%, -44px); }
+  #luna .node-icon {
+    width: 62px; height: 62px; border-radius: 50%; background: #fff; border: 2px solid var(--border-default);
+    color: var(--blue-text); display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 8px;
+  }
+  #luna .node-icon.high { border-color: var(--red); color: var(--red); }
+  #luna .node-center .node-icon { width: 88px; height: 88px; font-size: 34px; color: var(--blue-text); border-color: var(--blue-border); background: var(--blue-bg); margin-bottom: 8px; }
+  #luna .node-name { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+  #luna .node-center .node-name { color: var(--blue-text); font-size: 14px; }
+  #luna .node-center .node-sub { font-size: 11px; color: var(--gray); }
+  #luna .node-desc { font-size: 11px; color: var(--gray); line-height: 1.35; margin-bottom: 5px; }
+  #luna .sev { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: var(--gray); }
+  #luna .sev-dot { width: 7px; height: 7px; border-radius: 50%; }
+  #luna .sev-dot.low { background: var(--green); }
+  #luna .sev-dot.medium { background: var(--amber); }
+  #luna .sev-dot.high { background: var(--red); }
+
+  #luna .bottom-tip {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: #fff; border: 1px solid #e3e8f0;
+    border-radius: 12px; padding: 14px 18px; margin-top: 8px;
+  }
+  #luna .bottom-tip-icon { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--red-bg); color: var(--red-text); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  #luna .bottom-tip-text { flex: 1; min-width: 200px; }
+  #luna .bottom-tip-text b { display: block; font-size: 13px; color: var(--ink); }
+  #luna .bottom-tip-text span { font-size: 12px; color: var(--gray); }
+  #luna .btn-reset {
+    display: inline-flex; align-items: center; gap: 7px; background: #fff; color: var(--ink); border: 1px solid #d7deea;
+    font-size: 12.5px; font-weight: 600; padding: 9px 16px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  }
+  #luna .btn-reset:hover { background: #f4f7fc; }
+</style>
+
+<div id="luna">
+<h2 style="position:absolute; width:1px; height:1px; overflow:hidden;">Pick your function and a typical decision you make, then explore how it ripples across six areas of the supply chain.</h2>
+
+<span class="badge"><i class="ti ti-map-2" style="font-size:14px" aria-hidden="true"></i>Microtask</span>
+<h1>Decision Explorer</h1>
+<p class="sub">No matter your role, your everyday decisions influence the entire supply chain. Explore how.</p>
+
+<div class="progress-header">
+  <span class="stage-pill" id="luna-stage"><i class="ti ti-progress"></i>Step 1 of 3</span>
+</div>
+<div class="step-track" id="luna-step-track"></div>
+
+<div id="luna-step-1" class="col-card">
+  <div class="col-title">1. Select your function</div>
+  <div class="col-desc">Choose the function you work in.</div>
+  <div id="luna-functions"></div>
+  <div class="info-box"><i class="ti ti-info-circle"></i>No matter your role, your decisions influence the entire supply chain.</div>
+</div>
+<div class="nav-row" id="luna-nav-1">
+  <span></span>
+  <button class="btn-continue" id="luna-continue-1"><i class="ti ti-arrow-right" aria-hidden="true"></i>Continue</button>
+</div>
+
+<div id="luna-step-2" class="col-card hidden">
+  <div class="col-title">2. Choose a typical decision</div>
+  <div class="col-desc">Pick a decision you commonly make.</div>
+  <div id="luna-decisions"></div>
+</div>
+<div class="nav-row hidden" id="luna-nav-2">
+  <button class="btn-back" id="luna-back-2"><i class="ti ti-arrow-left" aria-hidden="true"></i>Back</button>
+  <button class="btn-continue" id="luna-continue-2"><i class="ti ti-arrow-right" aria-hidden="true"></i>Continue</button>
+</div>
+
+<div id="luna-step-3" class="col-card hidden">
+  <div class="col-title">3. See the supply chain consequences</div>
+  <div class="col-desc">Your decision influences multiple areas of the supply chain.</div>
+  <div id="luna-consequences"></div>
+</div>
+<div class="nav-row hidden" id="luna-nav-3">
+  <button class="btn-back" id="luna-back-3"><i class="ti ti-arrow-left" aria-hidden="true"></i>Back</button>
+  <span></span>
+</div>
+</div>
+
+<script>
+(function(){
+const ICONS = {
+  'adjustments': '<line x1="6" y1="4" x2="6" y2="20"/><circle cx="6" cy="10" r="2"/><line x1="12" y1="4" x2="12" y2="20"/><circle cx="12" cy="16" r="2"/><line x1="18" y1="4" x2="18" y2="20"/><circle cx="18" cy="8" r="2"/>',
+  'arrow-back-up': '<path d="M9 15 4 10l5-5"/><path d="M4 10h11a5 5 0 0 1 0 10h-3"/>',
+  'arrow-big-right-lines': '<line x1="3" y1="12" x2="17" y2="12"/><polyline points="11,5 18,12 11,19"/>',
+  'arrow-left': '<line x1="20" y1="12" x2="4" y2="12"/><polyline points="10,6 4,12 10,18"/>',
+  'arrow-right': '<line x1="4" y1="12" x2="20" y2="12"/><polyline points="14,6 20,12 14,18"/>',
+  'boxes': '<rect x="3" y="10" width="7" height="7"/><rect x="14" y="10" width="7" height="7"/><rect x="8.5" y="3" width="7" height="7"/>',
+  'building': '<rect x="5" y="3" width="14" height="18"/><rect x="8.5" y="6.5" width="2" height="2"/><rect x="13.5" y="6.5" width="2" height="2"/><rect x="8.5" y="11.5" width="2" height="2"/><rect x="13.5" y="11.5" width="2" height="2"/><rect x="10" y="16.5" width="4" height="4.5"/>',
+  'building-bank': '<polygon points="12,3 21,9 3,9"/><line x1="5" y1="9" x2="5" y2="20"/><line x1="9" y1="9" x2="9" y2="20"/><line x1="15" y1="9" x2="15" y2="20"/><line x1="19" y1="9" x2="19" y2="20"/><line x1="3" y1="21" x2="21" y2="21"/>',
+  'building-factory-2': '<path d="M3 21V13l5 3v-3l5 3v-3l6 3.5V21"/><line x1="3" y1="21" x2="19" y2="21"/><line x1="19" y1="8" x2="19" y2="3"/>',
+  'building-warehouse': '<path d="M3 21V10l9-6 9 6v11"/><line x1="3" y1="21" x2="21" y2="21"/><rect x="9" y="13" width="6" height="8"/>',
+  'calendar-time': '<rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><circle cx="15" cy="16" r="3"/><line x1="15" y1="14.5" x2="15" y2="16"/><line x1="15" y1="16" x2="16" y2="16.6"/>',
+  'chart-bar': '<line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="15"/><line x1="20" y1="20" x2="20" y2="9"/><line x1="2" y1="20" x2="22" y2="20"/>',
+  'circle-check': '<circle cx="12" cy="12" r="9"/><polyline points="8,12.5 11,15.5 16,9"/>',
+  'clock-pause': '<circle cx="11" cy="13" r="8"/><line x1="11" y1="8" x2="11" y2="13"/><line x1="11" y1="13" x2="14" y2="15"/><line x1="8" y1="2" x2="8" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/>',
+  'coin': '<circle cx="12" cy="12" r="9"/><path d="M9 9c0-1.5 1.5-2 3-2s3 .5 3 2-1.5 2-3 2-3 .5-3 2 1.5 2 3 2 3-.5 3-2"/><line x1="12" y1="6" x2="12" y2="18"/>',
+  'currency-dollar': '<circle cx="12" cy="12" r="9"/><path d="M9 9c0-1.5 1.5-2 3-2s3 .5 3 2-1.5 2-3 2-3 .5-3 2 1.5 2 3 2 3-.5 3-2"/><line x1="12" y1="4" x2="12" y2="20"/>',
+  'discount-2': '<path d="M3 12l9-9h6a3 3 0 0 1 3 3v6l-9 9a2 2 0 0 1-3 0l-6-6a2 2 0 0 1 0-3z"/><circle cx="15" cy="9" r="1.5"/>',
+  'eye': '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  'file-check': '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="14,3 14,9 20,9"/><polyline points="9,14 11,16 15,12"/>',
+  'gauge': '<path d="M4 15a8 8 0 1 1 16 0"/><line x1="12" y1="15" x2="15" y2="10"/><circle cx="12" cy="15" r="1"/>',
+  'gift': '<rect x="3" y="9" width="18" height="12"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="12" y1="9" x2="12" y2="21"/><path d="M12 9c0-3-3-5-4-3s1 3 4 3"/><path d="M12 9c0-3 3-5 4-3s-1 3-4 3"/>',
+  'git-merge': '<circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><line x1="6" y1="8" x2="6" y2="16"/><path d="M6 8c0 5 4 6 8 6"/><line x1="18" y1="16" x2="18" y2="10"/>',
+  'hand-click': '<path d="M8 13V6a2 2 0 0 1 4 0v6"/><path d="M12 12V5a2 2 0 0 1 4 0v7"/><path d="M16 12V8a2 2 0 0 1 4 0v6c0 4-2 7-7 7s-7-3-7-6"/>',
+  'headset': '<path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1"/><rect x="17" y="13" width="4" height="6" rx="1"/><path d="M19 19v1a3 3 0 0 1-3 3h-2"/>',
+  'info-circle': '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor" stroke="none"/>',
+  'leaf': '<path d="M4 20c8 0 14-6 16-16-10 1-16 7-16 16z"/><path d="M6 18c4-4 8-8 12-12"/>',
+  'list-details': '<line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
+  'map-2': '<polygon points="9,3 3,6 3,20 9,17 15,20 21,17 21,3 15,6 9,3"/><line x1="9" y1="3" x2="9" y2="17"/><line x1="15" y1="6" x2="15" y2="20"/>',
+  'map-pin': '<path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  'moon': '<path d="M20 12.5A8.5 8.5 0 1 1 11.5 4a7 7 0 0 0 8.5 8.5z"/>',
+  'package': '<path d="M12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/>',
+  'progress': '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9" stroke-width="3"/>',
+  'refresh': '<path d="M4 12a8 8 0 0 1 14-5.3L21 9"/><polyline points="21,4 21,9 16,9"/><path d="M20 12a8 8 0 0 1-14 5.3L3 15"/><polyline points="3,20 3,15 8,15"/>',
+  'replace': '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/><path d="M11 7h6a2 2 0 0 1 2 2v4"/><path d="M13 17H7a2 2 0 0 1-2-2v-4"/>',
+  'route': '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17c0-6 3-6 6-9s6-3 6-3"/>',
+  'settings': '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+  'shield': '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+  'shield-off': '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><line x1="3" y1="3" x2="21" y2="21"/>',
+  'ship': '<path d="M3 16l2 5h14l2-5-8-2z"/><line x1="12" y1="14" x2="12" y2="3"/><path d="M12 3l5 3-5 2z"/>',
+  'shopping-cart': '<circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/><path d="M3 4h2l2.4 12.3a2 2 0 0 0 2 1.7h7.2a2 2 0 0 0 2-1.6L21 8H6"/>',
+  'speakerphone': '<path d="M3 11v3a1 1 0 0 0 1 1h2l5 4V6l-5 4H4a1 1 0 0 0-1 1z"/><path d="M17 9a4 4 0 0 1 0 6"/><path d="M20 6a8 8 0 0 1 0 12"/>',
+  'tag': '<path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9z"/><circle cx="8" cy="8" r="1.3"/>',
+  'tool': '<path d="M14 4a4 4 0 0 0-4.9 4.9L3 15v3h3l6-6.1A4 4 0 0 0 17 7l-3 3-2-2z"/>',
+  'trending-down': '<polyline points="3,7 10,14 14,10 21,17"/><polyline points="15,17 21,17 21,11"/>',
+  'truck-delivery': '<rect x="1" y="7" width="13" height="10"/><path d="M14 10h4l4 4v3h-8z"/><circle cx="6" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>',
+  'user': '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',
+  'users': '<circle cx="9" cy="8" r="3.2"/><path d="M2.5 21c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 15.7c2.7.4 5 2.2 5 5.3"/>',
+  'world': '<circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/>'
+};
+function svgIcon(key){
+  const body = ICONS[key];
+  if (!body) return '';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;vertical-align:-0.15em;display:inline-block;">' + body + '</svg>';
+}
+function hydrateIcons(root){
+  (root || document).querySelectorAll('i[class*="ti-"]').forEach(function(el){
+    const cls = Array.prototype.slice.call(el.classList).find(function(c){ return c.indexOf('ti-') === 0; });
+    if (cls && ICONS[cls.slice(3)] && !el.dataset.hydrated) {
+      el.innerHTML = svgIcon(cls.slice(3));
+      el.dataset.hydrated = '1';
+    }
+  });
+}
+
+const AREAS = [
+  { key:'service', name:'Service', icon:'ti-headset' },
+  { key:'cost', name:'Cost', icon:'ti-coin' },
+  { key:'sustainability', name:'Sustainability', icon:'ti-leaf' },
+  { key:'capacity', name:'Capacity', icon:'ti-building-factory-2' },
+  { key:'inventory', name:'Inventory', icon:'ti-package' },
+  { key:'risk', name:'Risk', icon:'ti-shield' }
+];
+// fixed hub coordinates in a 600x700 design space, center (300,300), true regular hexagon (radius 210)
+const HUB_POS = {
+  service: { x:300, y:90 }, cost: { x:481.87, y:195 }, sustainability: { x:481.87, y:405 },
+  capacity: { x:300, y:510 }, inventory: { x:118.13, y:405 }, risk: { x:118.13, y:195 }
+};
+
+function d(name, icon, goal, sv) {
+  return { name: name, icon: icon, goal: goal, sv: sv };
+}
+
+const FUNCTIONS = [
+  { key:'sales', name:'Sales', icon:'ti-users', decisions: [
+    d('Offer a discount to close a deal','ti-discount-2','Win the deal and hit the sales target',{
+      service:['low','Minor onboarding support needed'], cost:['high','Direct margin reduction on the deal'],
+      sustainability:['low','No material change'], capacity:['low','Single order, minimal strain'],
+      inventory:['medium','Order pulls from existing stock'], risk:['medium','Sets a pricing precedent for future deals']}),
+    d('Promise a rush delivery','ti-truck-delivery','Secure the order by meeting a tight deadline',{
+      service:['medium','Customer expects proactive updates'], cost:['high','Expedited freight costs'],
+      sustainability:['medium','Air freight increases carbon footprint'], capacity:['high','Jumps the production queue'],
+      inventory:['medium','May divert stock from other orders'], risk:['high','A missed promise damages customer trust']}),
+    d('Accept a large one-off order','ti-shopping-cart','Capture a large revenue opportunity',{
+      service:['medium','One customer absorbs support capacity'], cost:['medium','Possible rush costs to fulfill'],
+      sustainability:['low','Minimal material impact'], capacity:['high','Displaces planned production'],
+      inventory:['high','Depletes shared safety stock'], risk:['high','Other customers may be under-served']}),
+    d('Extend payment terms to a customer','ti-calendar-time','Win or retain a key account',{
+      service:['low','No direct service impact'], cost:['medium','Delayed cash inflow'],
+      sustainability:['low','No material change'], capacity:['low','No production impact'],
+      inventory:['low','No direct inventory impact'], risk:['high','Increases working capital and credit risk']})
+  ]},
+  { key:'marketing', name:'Marketing', icon:'ti-speakerphone', decisions: [
+    d('Launch promotion','ti-speakerphone','Drive short-term sales and clear excess stock',{
+      service:['medium','More order volume drives support inquiries'], cost:['medium','Discount pricing compresses margin'],
+      sustainability:['low','Slightly more packaging waste from volume'], capacity:['high','Demand spike strains production and fulfillment'],
+      inventory:['high','Risk of stockouts on promoted SKUs'], risk:['medium','Forecast error inflates under- or overstock risk']}),
+    d('New packaging (country-specific)','ti-package','Meet local market requirements and improve customer appeal',{
+      service:['medium','More inquiries & handling needed'], cost:['medium','More materials, processes, inventory'],
+      sustainability:['low','More packaging materials'], capacity:['medium','More changeovers may be required'],
+      inventory:['high','Additional SKU & safety stock'], risk:['medium','More SKU complexity increases risk']}),
+    d('Enter new market','ti-world','Grow revenue by reaching new customers',{
+      service:['medium','New language & support needs'], cost:['high','New logistics and compliance costs'],
+      sustainability:['medium','Longer transport distances'], capacity:['medium','New demand competes for capacity'],
+      inventory:['medium','New regional stocking required'], risk:['high','Regulatory and demand uncertainty']}),
+    d('Price reduction','ti-tag','Increase volume and stay competitive on price',{
+      service:['low','Minimal service impact'], cost:['high','Margin pressure across the board'],
+      sustainability:['low','No material change'], capacity:['medium','Demand may rise unexpectedly'],
+      inventory:['medium','Faster sell-through of stock'], risk:['medium','Competitor reaction is unpredictable']}),
+    d('Run seasonal campaign','ti-gift','Capture peak seasonal demand',{
+      service:['medium','Seasonal spike in inquiries'], cost:['medium','Temporary labor & logistics costs'],
+      sustainability:['low','Short-term packaging increase'], capacity:['high','Peak-season capacity is already tight'],
+      inventory:['high','Must pre-build stock ahead of peak'], risk:['medium','Short selling window raises leftover risk']})
+  ]},
+  { key:'finance', name:'Finance', icon:'ti-chart-bar', decisions: [
+    d('Tighten payment terms with suppliers','ti-currency-dollar','Improve short-term cash flow',{
+      service:['low','No direct customer impact'], cost:['medium','Improves cash position short-term'],
+      sustainability:['low','No material change'], capacity:['medium','Suppliers may deprioritize your orders'],
+      inventory:['medium','Suppliers may hold shipments'], risk:['high','Strains supplier relationships and reliability']}),
+    d('Cut inventory carrying costs','ti-trending-down','Free up working capital',{
+      service:['medium','Lower buffer risks stockouts'], cost:['medium','Reduces holding cost'],
+      sustainability:['low','Less warehousing energy use'], capacity:['low','No production impact'],
+      inventory:['high','Directly reduces safety stock'], risk:['high','Less buffer against demand swings']}),
+    d('Approve a large capex request','ti-building-bank','Invest in future capacity or capability',{
+      service:['low','No immediate service impact'], cost:['high','Large upfront cash outlay'],
+      sustainability:['medium','New equipment may change energy use'], capacity:['high','Expands or disrupts capacity during install'],
+      inventory:['low','No direct inventory impact'], risk:['medium','Long payback period ties up capital']}),
+    d('Delay a supplier payment','ti-clock-pause','Manage a short-term cash shortfall',{
+      service:['low','No direct customer impact'], cost:['low','Short-term cash relief'],
+      sustainability:['low','No material change'], capacity:['medium','Supplier may slow future orders'],
+      inventory:['medium','Risk of delayed shipments'], risk:['high','Damages supplier trust and priority']})
+  ]},
+  { key:'procurement', name:'Procurement', icon:'ti-shopping-cart', decisions: [
+    d('Switch to a lower-cost supplier','ti-replace','Reduce material cost',{
+      service:['medium','New supplier\u2019s responsiveness is untested'], cost:['medium','Lower unit price'],
+      sustainability:['medium','Unknown supplier sustainability practices'], capacity:['medium','New onboarding and qualification needed'],
+      inventory:['medium','Possible lead time changes'], risk:['high','Quality and reliability are unproven']}),
+    d('Consolidate suppliers','ti-git-merge','Simplify the supply base and gain leverage',{
+      service:['low','Simpler support relationships'], cost:['medium','Volume discounts likely'],
+      sustainability:['low','Fewer shipments overall'], capacity:['medium','Fewer backup sources if issues arise'],
+      inventory:['medium','Consolidated lead times'], risk:['high','Single point of failure risk increases']}),
+    d('Increase order quantities for discounts','ti-boxes','Lower unit cost through volume',{
+      service:['low','No direct service impact'], cost:['medium','Lower unit cost via volume'],
+      sustainability:['low','Larger shipments, fewer trips'], capacity:['low','No production impact'],
+      inventory:['high','Higher carrying cost and obsolescence risk'], risk:['medium','Cash tied up in excess stock']}),
+    d('Source from a new region','ti-map-pin','Diversify supply and reduce cost',{
+      service:['low','No direct service impact'], cost:['medium','Potential landed cost savings'],
+      sustainability:['medium','Longer transport distances'], capacity:['medium','New logistics lanes to establish'],
+      inventory:['high','Longer lead times need more buffer'], risk:['high','Geopolitical and customs exposure']})
+  ]},
+  { key:'engineering', name:'Engineering', icon:'ti-settings', decisions: [
+    d('Change a product\u2019s bill of materials','ti-list-details','Improve product cost or performance',{
+      service:['low','No direct customer impact'], cost:['medium','New component sourcing costs'],
+      sustainability:['medium','New materials may change footprint'], capacity:['medium','Line changeover required'],
+      inventory:['high','Old components risk becoming obsolete'], risk:['medium','Supplier and quality requalification needed']}),
+    d('Approve an engineering change order','ti-file-check','Fix a design or quality issue',{
+      service:['low','No direct customer impact'], cost:['medium','Rework and documentation costs'],
+      sustainability:['low','Minimal material impact'], capacity:['medium','Temporary line disruption'],
+      inventory:['medium','Existing stock may need rework'], risk:['medium','Coordination across functions required']}),
+    d('Redesign for lower cost','ti-tool','Reduce the product\u2019s total cost',{
+      service:['low','No direct customer impact'], cost:['high','Lower unit cost once implemented'],
+      sustainability:['medium','May change material footprint'], capacity:['medium','Retooling may be required'],
+      inventory:['high','Old design stock becomes excess'], risk:['medium','Performance must be re-validated']}),
+    d('Introduce a new product variant','ti-package','Meet a new customer or market need',{
+      service:['medium','New SKU adds support complexity'], cost:['medium','New tooling and setup costs'],
+      sustainability:['low','Slightly more material variety'], capacity:['medium','Shares capacity with existing lines'],
+      inventory:['high','New SKU adds safety stock needs'], risk:['medium','Demand for the new variant is unproven']})
+  ]},
+  { key:'operations', name:'Operations', icon:'ti-adjustments', decisions: [
+    d('Increase production line speed','ti-gauge','Meet higher demand without new capital',{
+      service:['low','No direct customer impact'], cost:['medium','Higher throughput, possible quality cost'],
+      sustainability:['medium','Higher energy consumption'], capacity:['high','Directly increases output capacity'],
+      inventory:['medium','Faster replenishment of stock'], risk:['medium','Quality risk rises with speed']}),
+    d('Add a night shift','ti-moon','Increase output to meet demand',{
+      service:['low','No direct customer impact'], cost:['high','Higher labor cost (shift premium)'],
+      sustainability:['low','Extended facility energy use'], capacity:['high','Significantly expands output capacity'],
+      inventory:['medium','Faster stock replenishment'], risk:['medium','Staffing and safety oversight risk']}),
+    d('Reduce safety stock targets','ti-shield-off','Free up working capital',{
+      service:['medium','Higher stockout risk for customers'], cost:['medium','Frees up working capital'],
+      sustainability:['low','No material change'], capacity:['low','No production impact'],
+      inventory:['high','Directly lowers buffer stock'], risk:['high','Less resilience to demand spikes']}),
+    d('Consolidate production to one site','ti-building-factory-2','Reduce fixed operating costs',{
+      service:['medium','Longer average shipping distances'], cost:['medium','Lower fixed costs overall'],
+      sustainability:['medium','Longer transport, fewer facilities'], capacity:['high','Single site must absorb all volume'],
+      inventory:['medium','Centralized stock, less local buffer'], risk:['high','Single site is a single point of failure']})
+  ]},
+  { key:'supplychain', name:'Supply Chain', icon:'ti-route', decisions: [
+    d('Switch from air to ocean freight','ti-ship','Reduce cost and carbon footprint',{
+      service:['medium','Longer delivery times to customers'], cost:['medium','Lower freight cost per unit'],
+      sustainability:['high','Meaningfully lowers carbon emissions'], capacity:['low','No production impact'],
+      inventory:['high','Longer transit needs more safety stock'], risk:['medium','Port delays become a bigger risk']}),
+    d('Centralize distribution','ti-building-warehouse','Simplify the network and cut cost',{
+      service:['medium','Longer last-mile delivery times'], cost:['medium','Lower warehousing overhead'],
+      sustainability:['medium','Longer average shipping distances'], capacity:['medium','Central site handles all volume'],
+      inventory:['medium','Consolidated stock, less redundancy'], risk:['high','Single distribution point of failure']}),
+    d('Reduce number of warehouses','ti-building','Lower fixed network costs',{
+      service:['medium','Some regions see longer delivery times'], cost:['medium','Lower facility and overhead costs'],
+      sustainability:['medium','Longer transport distances'], capacity:['medium','Remaining sites absorb more volume'],
+      inventory:['medium','Less local buffer stock'], risk:['high','Less network resilience to disruption']}),
+    d('Change reorder points','ti-refresh','Better balance service and inventory cost',{
+      service:['medium','Stockout risk changes with the trigger'], cost:['low','Minor change in carrying cost'],
+      sustainability:['low','No material change'], capacity:['low','No production impact'],
+      inventory:['high','Directly changes the stock levels held'], risk:['medium','Miscalibration raises stockout or excess risk']})
+  ]}
+];
+
+let selectedFn = null;
+let selectedDec = null;
+let currentStep = 1;
+
+function renderFunctions(){
+  const wrap = document.getElementById('luna-functions');
+  wrap.innerHTML = '';
+  FUNCTIONS.forEach(function(fn){
+    const row = document.createElement('div');
+    row.className = 'opt-row' + (selectedFn === fn.key ? ' selected' : '');
+    row.innerHTML = '<span class="opt-radio"></span><i class="ti ' + fn.icon + ' opt-icon"></i><span class="opt-label">' + fn.name + '</span>';
+    row.addEventListener('click', function(){
+      selectedFn = fn.key;
+      selectedDec = null;
+      renderFunctions();
+      renderDecisions();
+      renderConsequences();
+      updateNavState();
+    });
+    wrap.appendChild(row);
+  });
+}
+
+function currentFn(){ return FUNCTIONS.find(function(f){ return f.key === selectedFn; }); }
+function currentDec(){ const fn = currentFn(); return fn ? fn.decisions.find(function(dec){ return dec.name === selectedDec; }) : null; }
+
+function renderDecisions(){
+  const wrap = document.getElementById('luna-decisions');
+  wrap.innerHTML = '';
+  const fn = currentFn();
+  if (!fn) {
+    wrap.innerHTML = '<div class="col2-empty"><i class="ti ti-arrow-left"></i><br>Select a function first.</div>';
+    return;
+  }
+  fn.decisions.forEach(function(dec){
+    const row = document.createElement('div');
+    row.className = 'opt-row' + (selectedDec === dec.name ? ' selected' : '');
+    row.innerHTML = '<span class="opt-radio"></span><i class="ti ' + dec.icon + ' opt-icon"></i><span class="opt-label">' + dec.name + '</span>';
+    row.addEventListener('click', function(){
+      selectedDec = dec.name;
+      renderDecisions();
+      renderConsequences();
+      updateNavState();
+    });
+    wrap.appendChild(row);
+  });
+  if (selectedDec) {
+    const prompt = document.createElement('div');
+    prompt.className = 'decision-prompt';
+    prompt.innerHTML =
+      '<div class="decision-prompt-icon"><i class="ti ti-circle-check"></i></div>' +
+      '<div class="decision-prompt-text"><b>You made a decision.</b>See how it influences different parts of the supply chain.</div>' +
+      '<i class="ti ti-arrow-big-right-lines decision-prompt-arrow"></i>';
+    wrap.appendChild(prompt);
+  }
+}
+
+function renderConsequences(){
+  const wrap = document.getElementById('luna-consequences');
+  wrap.innerHTML = '';
+  const fn = currentFn();
+  const dec = currentDec();
+  if (!fn || !dec) {
+    wrap.innerHTML = '<div class="col3-empty"><i class="ti ti-hand-click"></i><br>Choose a function and decision to see the consequences.</div>';
+    return;
+  }
+
+  const summary = document.createElement('div');
+  summary.className = 'decision-summary';
+  summary.innerHTML =
+    '<div class="decision-summary-icon"><i class="ti ' + dec.icon + '"></i></div>' +
+    '<div><div class="decision-summary-line1">Decision: <b>' + dec.name + '</b></div>' +
+    '<div class="decision-summary-line2"><b>Goal:</b> ' + dec.goal + '</div></div>';
+  wrap.appendChild(summary);
+
+  const hub = document.createElement('div');
+  hub.className = 'hub';
+  // All six vertices sit at radius 210 from (300,300). Draw each dashed spoke only in the
+  // clear band between YOU's label block (~r96) and the node's icon edge (r179), so no
+  // line ever crosses text.
+  const CX = 300, CY = 300, R_START = 96, R_END = 171;
+  function pct(x, y){ return { lx: (x/600*100).toFixed(3) + '%', ty: (y/700*100).toFixed(3) + '%' }; }
+  let svgLines = '';
+  AREAS.forEach(function(a){
+    const p = HUB_POS[a.key];
+    const dx = p.x - CX, dy = p.y - CY, len = Math.hypot(dx, dy);
+    const ux = dx / len, uy = dy / len;
+    svgLines += '<line x1="' + (CX + ux * R_START).toFixed(1) + '" y1="' + (CY + uy * R_START).toFixed(1) +
+                '" x2="' + (CX + ux * R_END).toFixed(1) + '" y2="' + (CY + uy * R_END).toFixed(1) +
+                '" stroke="#c7d3e6" stroke-width="1.5" stroke-dasharray="4 5"/>';
+  });
+  const centerPos = pct(CX, CY);
+  let nodesHTML = '<div class="node node-center" style="left:' + centerPos.lx + '; top:' + centerPos.ty + ';">' +
+    '<div class="node-icon"><i class="ti ti-user"></i></div>' +
+    '<div class="node-name">YOU</div><div class="node-sub">(' + fn.name + ')</div></div>';
+  AREAS.forEach(function(a){
+    const p = HUB_POS[a.key];
+    const pos = pct(p.x, p.y);
+    const info = dec.sv[a.key];
+    const sev = info[0], text = info[1];
+    // Nodes above the centre put their text above the icon, so it reads outward
+    // instead of hanging back down into the spoke.
+    const above = p.y < CY;
+    const iconHTML = '<div class="node-icon' + (sev === 'high' ? ' high' : '') + '"><i class="ti ' + a.icon + '"></i></div>';
+    const textHTML = '<div class="node-name">' + a.name + '</div>' +
+      '<div class="node-desc">' + text + '</div>' +
+      '<div class="sev"><span class="sev-dot ' + sev + '"></span>' + sev.charAt(0).toUpperCase() + sev.slice(1) + '</div>';
+    nodesHTML += '<div class="node' + (above ? ' above' : '') + '" style="left:' + pos.lx + '; top:' + pos.ty + ';">' +
+      (above ? textHTML + iconHTML : iconHTML + textHTML) +
+      '</div>';
+  });
+  hub.innerHTML = '<svg class="hub-lines" viewBox="0 0 600 700" preserveAspectRatio="none">' + svgLines + '</svg>' + nodesHTML;
+  wrap.appendChild(hub);
+
+  const tip = document.createElement('div');
+  tip.className = 'bottom-tip';
+  tip.innerHTML =
+    '<div class="bottom-tip-icon"><i class="ti ti-eye"></i></div>' +
+    '<div class="bottom-tip-text"><b>Decisions in one area influence many others.</b><span>Consider these consequences early to make better end-to-end decisions.</span></div>' +
+    '<span class="btn-reset" id="luna-reset"><i class="ti ti-refresh"></i>Reset explorer</span>';
+  wrap.appendChild(tip);
+  document.getElementById('luna-reset').addEventListener('click', resetExplorer);
+}
+
+function resetExplorer(){
+  selectedFn = null;
+  selectedDec = null;
+  renderFunctions();
+  renderDecisions();
+  renderConsequences();
+  goToStep(1);
+}
+
+function renderStepTrack(){
+  const track = document.getElementById('luna-step-track');
+  track.innerHTML = '';
+  [1, 2, 3].forEach(function(n){
+    const circle = document.createElement('div');
+    circle.className = 'step-circle' + (n < currentStep ? ' done' : (n === currentStep ? ' active' : ''));
+    circle.textContent = n;
+    track.appendChild(circle);
+    if (n < 3) {
+      const line = document.createElement('div');
+      line.className = 'step-line' + (n < currentStep ? ' done' : '');
+      track.appendChild(line);
+    }
+  });
+  document.getElementById('luna-stage').innerHTML = '<i class="ti ti-progress"></i>Step ' + currentStep + ' of 3';
+}
+
+function updateStepVisibility(){
+  [1, 2, 3].forEach(function(n){
+    document.getElementById('luna-step-' + n).classList.toggle('hidden', n !== currentStep);
+    document.getElementById('luna-nav-' + n).classList.toggle('hidden', n !== currentStep);
+  });
+}
+
+function updateNavState(){
+  document.getElementById('luna-continue-1').disabled = !selectedFn;
+  document.getElementById('luna-continue-2').disabled = !selectedDec;
+}
+
+function goToStep(n){
+  currentStep = n;
+  renderStepTrack();
+  updateStepVisibility();
+  updateNavState();
+}
+
+document.getElementById('luna-continue-1').addEventListener('click', function(){ if (selectedFn) goToStep(2); });
+document.getElementById('luna-back-2').addEventListener('click', function(){ goToStep(1); });
+document.getElementById('luna-continue-2').addEventListener('click', function(){ if (selectedDec) goToStep(3); });
+document.getElementById('luna-back-3').addEventListener('click', function(){ goToStep(2); });
+
+const lunaEl = document.getElementById('luna');
+new MutationObserver(function(){ hydrateIcons(lunaEl); }).observe(lunaEl, { childList: true, subtree: true });
+hydrateIcons(lunaEl);
+
+renderFunctions();
+renderDecisions();
+renderConsequences();
+goToStep(1);
+})();
+</script>
+</div></body></html>
